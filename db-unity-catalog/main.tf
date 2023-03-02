@@ -149,10 +149,28 @@ resource "databricks_storage_credential" "external_mi" {
 */
 resource "databricks_external_location" "external_location_playground" {
   name = "playground_external"
-  url  = format("abfss://%s@%s.dfs.core.windows.net/",
+  url  = format("abfss://%s@%s.dfs.core.windows.net",
     azurerm_storage_container.test_data_cont.name,
     azurerm_storage_account.test_data_sa.name)
   credential_name = databricks_storage_credential.external_mi.id
   comment         = "Managed by TF"
   depends_on      = [azurerm_role_assignment.external_mi_storage_role_assign]
+}
+
+############
+## CATALOG #
+############
+/*
+  The catalog use the external location to create the Schemas (databases) inside the Storage Account.
+*/
+resource "databricks_catalog" "playground" {
+  metastore_id = databricks_metastore.metastore.id
+  name         = "playground"
+  storage_root = databricks_external_location.external_location_playground.url
+  comment      = "Managed by TF"
+  properties   = {
+    environment = var.environment
+    domain      = "DATA"
+  }
+  owner = var.me
 }
